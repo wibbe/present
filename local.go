@@ -9,7 +9,7 @@ package main
 import (
 	"net/http"
 
-	"code.google.com/p/go.talks/pkg/socket"
+	"github.com/wibbe/present/pkg/socket"
 )
 
 // HandleSocket registers the websocket handler with http.DefaultServeMux under

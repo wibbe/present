@@ -15,17 +15,19 @@ import (
 	"os"
 	"strings"
 
-	"code.google.com/p/go.talks/pkg/present"
+	"github.com/wibbe/present/pkg/present"
 )
 
-const basePkg = "code.google.com/p/go.talks/present"
+const basePkg = "github.com/wibbe/present"
 
 var basePath string
+var contentPath string
 
 func main() {
 	httpListen := flag.String("http", "127.0.0.1:3999", "host:port to listen on")
 	flag.StringVar(&basePath, "base", "", "base path for slide template and static resources")
-	flag.BoolVar(&present.PlayEnabled, "play", true, "enable playground (permit execution of arbitrary user code)")
+	flag.StringVar(&contentPath, "content", ".", "where to look for slides and articles")
+	flag.BoolVar(&present.PlayEnabled, "play", false, "enable playground (permit execution of arbitrary user code)")
 	flag.Parse()
 
 	if basePath == "" {
