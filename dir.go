@@ -140,7 +140,7 @@ func dirList(w io.Writer, name string) (isDir bool, err error) {
 			continue
 		}
 		if isDoc(e.Name) {
-			if p, err := parse(filepath.Join(contentPath, e.Path), present.TitlesOnly); err != nil {
+			if p, err := parse(e.Path, present.TitlesOnly); err != nil {
 				log.Println(err)
 			} else {
 				e.Title = p.Title
@@ -188,7 +188,7 @@ func showFile(n string) bool {
 
 // showDir returns whether the given directory should be displayed in the list.
 func showDir(n string) bool {
-	if len(n) > 0 && (n[0] == '.' || n[0] == '_') || n == "present" || n == "js" || n == "static" || n == "templates" {
+	if len(n) > 0 && (n[0] == '.' || n[0] == '_') || n == "present" {
 		return false
 	}
 	return true
