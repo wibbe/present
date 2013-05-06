@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/wibbe/present/pkg/present"
@@ -22,11 +23,13 @@ const basePkg = "github.com/wibbe/present"
 
 var basePath string
 var contentPath string
+var indexTemplate string
 
 func main() {
 	httpListen := flag.String("http", "127.0.0.1:3999", "host:port to listen on")
 	flag.StringVar(&basePath, "base", "", "base path for slide template and static resources")
 	flag.StringVar(&contentPath, "content", ".", "where to look for slides and articles")
+	flag.StringVar(&indexTemplate, "template", "", "the template to use when articles and slides are listed")
 	flag.BoolVar(&present.PlayEnabled, "play", false, "enable playground (permit execution of arbitrary user code)")
 	flag.Parse()
 
@@ -38,6 +41,16 @@ func main() {
 			os.Exit(1)
 		}
 		basePath = p.Dir
+	}
+
+	if indexTemplate == "" {
+		p, err := build.Default.Import(basePkg, "", build.FindOnly)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't find gopresent files: %v\n", err)
+			fmt.Fprintf(os.Stderr, basePathMessage, basePkg)
+			os.Exit(1)
+		}
+		indexTemplate = filepath.Join(p.Dir, "templates", "index.tmpl")
 	}
 
 	if present.PlayEnabled {

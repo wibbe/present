@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -157,7 +158,13 @@ func dirList(w io.Writer, name string) (isDir bool, err error) {
 	sort.Sort(d.Slides)
 	sort.Sort(d.Articles)
 	sort.Sort(d.Other)
-	return true, dirListTemplate.Execute(w, d)
+
+	templ, err := getListTemplate()
+	if err != nil {
+		return false, err
+	}
+
+	return true, templ.Execute(w, d)
 }
 
 // showFile returns whether the given file should be displayed in the list.
@@ -195,86 +202,16 @@ func (s dirEntrySlice) Len() int           { return len(s) }
 func (s dirEntrySlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s dirEntrySlice) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
-var dirListTemplate = template.Must(template.New("").Parse(dirListHTML))
+var dirListTemplate *template.Template = nil
 
-const dirListHTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>Talks - The Go Programming Language</title>
-  <link type="text/css" rel="stylesheet" href="/static/dir.css">
-  <script src="/static/dir.js"></script>
-</head>
-<body>
+func getListTemplate() (*template.Template, error) {
+	if dirListTemplate == nil {
+		content, err := ioutil.ReadFile(indexTemplate)
+		if err != nil {
+			return nil, err
+		}
 
-<div id="topbar"><div class="container">
-
-<form method="GET" action="http://golang.org/search">
-<div id="menu">
-<a href="http://golang.org/doc/">Documents</a>
-<a href="http://golang.org/ref/">References</a>
-<a href="http://golang.org/pkg/">Packages</a>
-<a href="http://golang.org/project/">The Project</a>
-<a href="http://golang.org/help/">Help</a>
-<input type="text" id="search" name="q" class="inactive" value="Search">
-</div>
-<div id="heading"><a href="/">The Go Programming Language</a></div>
-</form>
-
-</div></div>
-
-<div id="page">
-
-  <h1>Go talks</h1>
-
-  {{with .Path}}<h2>{{.}}</h2>{{end}}
-
-  {{with .Articles}}
-  <h4>Articles:</h4>
-  <dl>
-  {{range .}}
-  <dd><a href="/{{.Path}}">{{.Name}}</a>: {{.Title}}</dd>
-  {{end}}
-  </dl>
-  {{end}}
-
-  {{with .Slides}}
-  <h4>Slide decks:</h4>
-  <dl>
-  {{range .}}
-  <dd><a href="/{{.Path}}">{{.Name}}</a>: {{.Title}}</dd>
-  {{end}}
-  </dl>
-  {{end}}
-
-  {{with .Other}}
-  <h4>Files:</h4>
-  <dl>
-  {{range .}}
-  <dd><a href="/{{.Path}}">{{.Name}}</a></dd>
-  {{end}}
-  </dl>
-  {{end}}
-
-  {{with .Dirs}}
-  <h4>Sub-directories:</h4>
-  <dl>
-  {{range .}}
-  <dd><a href="/{{.Path}}">{{.Name}}</a></dd>
-  {{end}}
-  </dl>
-  {{end}}
-
-</div>
-
-<div id="footer">
-Except as <a href="http://code.google.com/policies.html#restrictions">noted</a>,
-the content of this page is licensed under the
-Creative Commons Attribution 3.0 License,
-and code is licensed under a <a href="/LICENSE">BSD license</a>.<br>
-<a href="http://golang.org/doc/tos.html">Terms of Service</a> | 
-<a href="http://www.google.com/intl/en/policies/privacy/">Privacy Policy</a>
-</div>
-
-</body>
-</html>`
+		dirListTemplate = template.Must(template.New("").Parse(string(content)))
+	}
+	return dirListTemplate, nil
+}
