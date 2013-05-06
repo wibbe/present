@@ -28,10 +28,10 @@ func dirHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", 404)
 		return
 	}
-	const base = "."
-	name := filepath.Join(base, r.URL.Path)
+
+	name := filepath.Join(contentPath, r.URL.Path)
 	if isDoc(name) {
-		err := renderDoc(w, basePath, name)
+		err := renderDoc(w, basePath, r.URL.Path)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), 500)
@@ -45,7 +45,7 @@ func dirHandler(w http.ResponseWriter, r *http.Request) {
 	} else if isDir {
 		return
 	}
-	http.FileServer(http.Dir(base)).ServeHTTP(w, r)
+	http.FileServer(http.Dir(contentPath)).ServeHTTP(w, r)
 }
 
 // extensions maps the presentable file extensions to the name of the
@@ -91,7 +91,7 @@ func renderDoc(w io.Writer, base, docFile string) error {
 }
 
 func parse(name string, mode present.ParseMode) (*present.Doc, error) {
-	f, err := os.Open(name)
+	f, err := os.Open(filepath.Join(contentPath, name))
 	if err != nil {
 		return nil, err
 	}
@@ -127,16 +127,20 @@ func dirList(w io.Writer, name string) (isDir bool, err error) {
 		if name == "." && fi.Name() == "pkg" {
 			continue
 		}
+
+		relativePath, _ := filepath.Rel(contentPath, name)
+
 		e := dirEntry{
 			Name: fi.Name(),
-			Path: filepath.Join(name, fi.Name()),
+			Path: filepath.Join(relativePath, fi.Name()),
 		}
+
 		if fi.IsDir() && showDir(e.Name) {
 			d.Dirs = append(d.Dirs, e)
 			continue
 		}
 		if isDoc(e.Name) {
-			if p, err := parse(e.Path, present.TitlesOnly); err != nil {
+			if p, err := parse(filepath.Join(contentPath, e.Path), present.TitlesOnly); err != nil {
 				log.Println(err)
 			} else {
 				e.Title = p.Title
@@ -151,6 +155,10 @@ func dirList(w io.Writer, name string) (isDir bool, err error) {
 			d.Other = append(d.Other, e)
 		}
 	}
+
+	// Make sure the path is relative content path
+	d.Path, _ = filepath.Rel(contentPath, d.Path)
+
 	if d.Path == "." {
 		d.Path = ""
 	}
@@ -172,7 +180,6 @@ func showFile(n string) bool {
 	switch filepath.Ext(n) {
 	case ".pdf":
 	case ".html":
-	case ".go":
 	default:
 		return isDoc(n)
 	}
@@ -181,7 +188,7 @@ func showFile(n string) bool {
 
 // showDir returns whether the given directory should be displayed in the list.
 func showDir(n string) bool {
-	if len(n) > 0 && (n[0] == '.' || n[0] == '_') || n == "present" {
+	if len(n) > 0 && (n[0] == '.' || n[0] == '_') || n == "present" || n == "js" || n == "static" || n == "templates" {
 		return false
 	}
 	return true
